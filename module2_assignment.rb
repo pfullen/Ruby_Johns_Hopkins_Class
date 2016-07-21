@@ -54,7 +54,8 @@ class Solution
   attr_reader :highest_count_words_across_lines #* highest_count_words_across_lines - a filtered array of LineAnalyzer objects with the highest_wf_words attribute
   #  equal to the highest_count_across_lines determined previously.
 
-  def initialize(file_name = File.join("data", "module2_content.txt"))
+  def initialize(file_name = File.join("data", "opening_lines.txt"))
+    @default_file = file_name
     # analyze_file(file_name)
     # call the calculate method(s) here
     # calculate_line_with_highest_frequency
@@ -67,13 +68,14 @@ class Solution
   #* Create an array of LineAnalyzers for each line in the file
   #* analyze_file() - processes 'test.txt' intro an array of LineAnalyzers and stores them in analyzers.
 
-  def analyze_file (file_name)
+  def analyze_file (file_name = @default_file, max_lines = nil)
     @analyzers = []
     # this will get an instance of LineAnalyzer for each line of your data file into an array
     File.foreach(file_name).with_index do |line, line_number|
       # << is a common shorthand to append an item to an array
       @analyzers << LineAnalyzer.new(line, line_number + 1) # add one because line_number will start at 0
-     end
+      break if !max_lines.nil? && line_number + 1 >= max_lines
+    end
      @analyzers # so we can examine the return
   end
 
@@ -85,15 +87,16 @@ class Solution
   #* calculate_line_with_highest_frequency() - determines the highest_count_across_lines and
   #  highest_count_words_across_lines attribute values
 
-  def calculate_stats
+  def calculate_stats(analyzers_array = nil)
+    analyzers_array = @analyzers if analyzers_array.nil?
     # this one gets the anaylyzer
-    analyzer_w_most_repeated_word = @analyzers.max_by { |analyzer| analyzer.highest_wf_count }
+    analyzer_w_most_repeated_word = analyzers_array.max_by { |analyzer| analyzer.highest_wf_count }
     #this one gets its highest word count
     @highest_count_across_lines = analyzer_w_most_repeated_word.highest_wf_count
 
     # this one gets all lines that match that highest word count - it will be an array of objects
     # containing one or more objects
-    @highest_count_words_across_lines = @analyzers.select { |e| e.highest_wf_count == @highest_count_across_lines }
+    @highest_count_words_across_lines = analyzers_array.select { |e| e.highest_wf_count == @highest_count_across_lines }
 
     # return a hash with some useful info
     { top_line: analyzer_w_most_repeated_word, repeat_word_count: @highest_count_across_lines,
@@ -112,11 +115,9 @@ class Solution
       puts "\tLine #{line.line_number}: (#{line.highest_wf_words.join(", ")}), appears #{@highest_count_across_lines
         } times\n#{word_wrap(line.content, 80, 2)}"
     end
-    q = nil
   end
 
   def word_wrap(string_to_wrap, line_length = 80, tabs_to_indent = 2, new_line = "\n")
-    new_string = ""
     tabs = "\t" * tabs_to_indent
     tab_length = 8
     lines = []
@@ -125,7 +126,7 @@ class Solution
     words = string_to_wrap.split(" ")
     words.each do |word|
       if line.length + 1 + word.length > effective_line_length
-        lines << "#{"\t" * tabs_to_indent}#{line}"
+        lines << "#{tabs}#{line}"
         line = ""
       end
       line += " #{word}"
@@ -137,7 +138,7 @@ end
 require 'pry'
 
 sol = Solution.new
-sol.analyze_file('./data/opening_lines.txt')
+sol.analyze_file #('./data/opening_lines.txt')
 sol.calculate_stats
 sol.print_highest_word_frequency_across_lines
 binding.pry
